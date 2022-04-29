@@ -3,6 +3,21 @@
 version = 3
 
 [[package]]
+name = "access-controller"
+version = "1.0.0"
+source = "git+https://github.com/smartcontractkit/chainlink-terra#b0a0407571561bfa799f3b21e941efacf4fe54f4"
+dependencies = [
+ "cosmwasm-std",
+ "cosmwasm-storage",
+ "cw-storage-plus 0.9.1",
+ "cw2",
+ "owned",
+ "schemars",
+ "serde",
+ "thiserror",
+]
+
+[[package]]
 name = "astroport"
 version = "1.0.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -35,6 +50,17 @@ dependencies = [
  "serde",
  "terra-cosmwasm",
  "thiserror",
+]
+
+[[package]]
+name = "blake2"
+version = "0.9.2"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "0a4e37d16930f5459780f5621038b6382b9bb37c19016f39fb6b5808d831f174"
+dependencies = [
+ "crypto-mac 0.8.0",
+ "digest",
+ "opaque-debug",
 ]
 
 [[package]]
@@ -148,6 +174,16 @@ dependencies = [
  "rand_core 0.6.3",
  "subtle",
  "zeroize",
+]
+
+[[package]]
+name = "crypto-mac"
+version = "0.8.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "b584a330336237c1eecd3e94266efb216c56ed91225d634cb2991c5f3fd1aeab"
+dependencies = [
+ "generic-array",
+ "subtle",
 ]
 
 [[package]]
@@ -281,6 +317,22 @@ dependencies = [
 ]
 
 [[package]]
+name = "deviation-flagging-validator"
+version = "1.0.0"
+source = "git+https://github.com/smartcontractkit/chainlink-terra#b0a0407571561bfa799f3b21e941efacf4fe54f4"
+dependencies = [
+ "cosmwasm-std",
+ "cosmwasm-storage",
+ "cw-storage-plus 0.9.1",
+ "cw2",
+ "flags",
+ "owned",
+ "schemars",
+ "serde",
+ "thiserror",
+]
+
+[[package]]
 name = "digest"
 version = "0.9.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -348,6 +400,22 @@ dependencies = [
 ]
 
 [[package]]
+name = "flags"
+version = "1.0.0"
+source = "git+https://github.com/smartcontractkit/chainlink-terra#b0a0407571561bfa799f3b21e941efacf4fe54f4"
+dependencies = [
+ "access-controller",
+ "cosmwasm-std",
+ "cosmwasm-storage",
+ "cw-storage-plus 0.9.1",
+ "cw2",
+ "owned",
+ "schemars",
+ "serde",
+ "thiserror",
+]
+
+[[package]]
 name = "forward_ref"
 version = "1.0.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -408,7 +476,7 @@ version = "0.11.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "2a2a2320eb7ec0ebe8da8f744d7812d9fc4cb4d09344ac01898dbcb6a20ae69b"
 dependencies = [
- "crypto-mac",
+ "crypto-mac 0.11.1",
  "digest",
 ]
 
@@ -432,9 +500,9 @@ dependencies = [
 
 [[package]]
 name = "libc"
-version = "0.2.124"
+version = "0.2.125"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "21a41fed9d98f27ab1c6d161da622a4fa35e8a54a8adc24bbf3ddd0ef70b0e50"
+checksum = "5916d2ae698f6de9bfb891ad7a8d65c09d232dc58cc4ac433c7da3b2fd84bc2b"
 
 [[package]]
 name = "mars-address-provider"
@@ -450,7 +518,7 @@ dependencies = [
 
 [[package]]
 name = "mars-core"
-version = "1.0.1"
+version = "1.0.3"
 dependencies = [
  "astroport",
  "basset",
@@ -458,6 +526,7 @@ dependencies = [
  "cw2",
  "cw20 0.9.1",
  "cw20-base",
+ "proxy-ocr2",
  "schemars",
  "serde",
  "terra-cosmwasm",
@@ -511,13 +580,15 @@ dependencies = [
 
 [[package]]
 name = "mars-oracle"
-version = "1.0.1"
+version = "1.0.3"
 dependencies = [
  "astroport",
+ "basset",
  "cosmwasm-schema",
  "cosmwasm-std",
  "cw-storage-plus 0.9.1",
  "mars-core",
+ "proxy-ocr2",
  "schemars",
  "serde",
  "terra-cosmwasm",
@@ -627,10 +698,42 @@ dependencies = [
 ]
 
 [[package]]
+name = "ocr2"
+version = "1.0.0"
+source = "git+https://github.com/smartcontractkit/chainlink-terra#b0a0407571561bfa799f3b21e941efacf4fe54f4"
+dependencies = [
+ "access-controller",
+ "blake2",
+ "cosmwasm-std",
+ "cosmwasm-storage",
+ "cw-storage-plus 0.9.1",
+ "cw2",
+ "cw20 0.9.1",
+ "deviation-flagging-validator",
+ "hex",
+ "owned",
+ "schemars",
+ "serde",
+ "thiserror",
+]
+
+[[package]]
 name = "opaque-debug"
 version = "0.3.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "624a8340c38c1b80fd549087862da4ba43e08858af025b236e509b6649fc13d5"
+
+[[package]]
+name = "owned"
+version = "1.0.0"
+source = "git+https://github.com/smartcontractkit/chainlink-terra#b0a0407571561bfa799f3b21e941efacf4fe54f4"
+dependencies = [
+ "cosmwasm-std",
+ "cw-storage-plus 0.9.1",
+ "schemars",
+ "serde",
+ "thiserror",
+]
 
 [[package]]
 name = "pkcs8"
@@ -649,6 +752,22 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "ec757218438d5fda206afc041538b2f6d889286160d649a86a24d37e1235afd1"
 dependencies = [
  "unicode-xid",
+]
+
+[[package]]
+name = "proxy-ocr2"
+version = "1.0.0"
+source = "git+https://github.com/smartcontractkit/chainlink-terra#b0a0407571561bfa799f3b21e941efacf4fe54f4"
+dependencies = [
+ "cosmwasm-std",
+ "cosmwasm-storage",
+ "cw-storage-plus 0.9.1",
+ "cw2",
+ "ocr2",
+ "owned",
+ "schemars",
+ "serde",
+ "thiserror",
 ]
 
 [[package]]
@@ -805,9 +924,9 @@ checksum = "6bdef32e8150c2a081110b42772ffe7d7c9032b606bc226c8260fd97e0976601"
 
 [[package]]
 name = "syn"
-version = "1.0.91"
+version = "1.0.92"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "b683b2b825c8eef438b77c36a06dc262294da3d5a5813fac20da149241dcd44d"
+checksum = "7ff7c592601f11445996a06f8ad0c27f094a58857c2f89e97974ab9235b92c52"
 dependencies = [
  "proc-macro2",
  "quote",

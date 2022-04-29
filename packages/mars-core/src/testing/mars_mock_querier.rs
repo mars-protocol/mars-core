@@ -15,6 +15,7 @@ use astroport::{
     asset::{Asset, PairInfo},
     pair::{CumulativePricesResponse, PoolResponse, SimulationResponse},
 };
+use chainlink_terra::state::Round;
 
 use super::{
     astroport_factory_querier::AstroportFactoryQuerier,
@@ -29,6 +30,7 @@ use super::{
 };
 use crate::math::decimal::Decimal;
 use crate::testing::basset_querier::BAssetQuerier;
+use crate::testing::chainlink_querier::ChainlinkQuerier;
 use basset::hub::StateResponse;
 
 pub struct MarsMockQuerier {
@@ -43,6 +45,7 @@ pub struct MarsMockQuerier {
     vesting_querier: VestingQuerier,
     incentives_querier: IncentivesQuerier,
     basset_querier: BAssetQuerier,
+    chainlink_querier: ChainlinkQuerier,
 }
 
 impl Querier for MarsMockQuerier {
@@ -76,6 +79,7 @@ impl MarsMockQuerier {
             vesting_querier: VestingQuerier::default(),
             incentives_querier: IncentivesQuerier::default(),
             basset_querier: BAssetQuerier::default(),
+            chainlink_querier: ChainlinkQuerier::default(),
         }
     }
 
@@ -245,6 +249,18 @@ impl MarsMockQuerier {
         self.basset_querier.state_response = Some(state_response);
     }
 
+    pub fn set_chainlink_decimals(&mut self, address: Addr, decimals: u8) {
+        self.chainlink_querier
+            .assets_decimals
+            .insert(address, decimals);
+    }
+
+    pub fn set_chainlink_latest_round_data(&mut self, address: Addr, round: Round) {
+        self.chainlink_querier
+            .assets_latest_round_data
+            .insert(address, round);
+    }
+
     pub fn handle_query(&self, request: &QueryRequest<TerraQueryWrapper>) -> QuerierResult {
         match &request {
             QueryRequest::Custom(TerraQueryWrapper { route, query_data }) => {
@@ -336,6 +352,15 @@ impl MarsMockQuerier {
                 let basset_query: StdResult<basset::hub::QueryMsg> = from_binary(msg);
                 if let Ok(query) = basset_query {
                     return self.basset_querier.handle_query(&query);
+                }
+
+                // Chainlink Queries
+                let parse_chainlink_query: StdResult<chainlink_terra::msg::QueryMsg> =
+                    from_binary(msg);
+                if let Ok(chainlink_query) = parse_chainlink_query {
+                    return self
+                        .chainlink_querier
+                        .handle_query(&contract_addr, chainlink_query);
                 }
 
                 panic!("[mock]: Unsupported wasm query: {:?}", msg);

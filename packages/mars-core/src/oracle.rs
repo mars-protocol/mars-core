@@ -52,6 +52,14 @@ pub enum PriceSource<A> {
     },
     /// stLuna price calculated from stLuna/Luna exchange rate from Lido hub contract and Luna price from current price source
     Stluna { hub_address: A },
+    /// Chainlink price quoted in UST. If the Chainlink price is USD denominated, the system converts
+    /// the price to UST using the Chainlink UST/USD price feed (`ust_usd_proxy_address` can't be empty in that case).
+    Chainlink {
+        /// Chainlink’s proxy contract for the asset
+        proxy_address: A,
+        /// Chainlink’s proxy contract for UST/USD price feed
+        ust_usd_proxy_address: Option<A>,
+    },
 }
 
 impl<A> fmt::Display for PriceSource<A> {
@@ -63,6 +71,7 @@ impl<A> fmt::Display for PriceSource<A> {
             PriceSource::AstroportTwap { .. } => "astroport_twap",
             PriceSource::AstroportLiquidityToken { .. } => "astroport_liquidity_token",
             PriceSource::Stluna { .. } => "stluna",
+            PriceSource::Chainlink { .. } => "chainlink",
         };
         write!(f, "{}", label)
     }
@@ -100,6 +109,19 @@ impl PriceSourceUnchecked {
             PriceSourceUnchecked::Stluna { hub_address } => PriceSourceChecked::Stluna {
                 hub_address: api.addr_validate(hub_address)?,
             },
+            PriceSourceUnchecked::Chainlink {
+                proxy_address,
+                ust_usd_proxy_address,
+            } => {
+                let ust_usd_proxy_address = match ust_usd_proxy_address {
+                    Some(addr) => Some(api.addr_validate(addr)?),
+                    None => None,
+                };
+                PriceSourceChecked::Chainlink {
+                    proxy_address: api.addr_validate(proxy_address)?,
+                    ust_usd_proxy_address,
+                }
+            }
         })
     }
 }

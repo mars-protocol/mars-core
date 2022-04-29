@@ -90,7 +90,7 @@ pub fn execute_set_asset(
     let price_source = price_source_unchecked.to_checked(deps.api)?;
     PRICE_SOURCES.save(deps.storage, &asset_reference, &price_source)?;
 
-    // for spot and TWAP sources, we must make sure: the astroport pair indicated by `pair_address`
+    // for price sources that utilize Astroport pools, we must make sure: the astroport pair indicated by `pair_address`
     // consists of UST and the asset of interest
     match &price_source {
         PriceSourceChecked::AstroportSpot { pair_address }
@@ -276,6 +276,7 @@ fn query_asset_price(
                         .checked_add(Uint128::MAX - previous_snapshot.price_cumulative)?
                 };
             let period = current_snapshot.timestamp - previous_snapshot.timestamp;
+
             // NOTE: Astroport introduces TWAP precision (https://github.com/astroport-fi/astroport/pull/143).
             // We need to divide the result by price_precision: (price_delta / (time * price_precision)).
             let price_precision = Uint128::from(10_u128.pow(TWAP_PRECISION.into()));
@@ -315,6 +316,21 @@ fn query_asset_price(
             let stluna_price = stluna_exchange_rate.checked_mul(luna_price)?;
             Ok(stluna_price)
         }
+
+        PriceSourceChecked::Chainlink {
+            proxy_address,
+            ust_usd_proxy_address,
+        } => {
+            let mut price = query_chainlink_price(&deps.querier, &proxy_address)?;
+
+            // If the Chainlink price is USD denominated, convert the price to UST using the Chainlink UST/USD price feed
+            if let Some(ust_usd_proxy_address) = ust_usd_proxy_address {
+                let ust_usd_price = query_chainlink_price(&deps.querier, &ust_usd_proxy_address)?;
+                price = price.checked_div(ust_usd_price)?;
+            }
+
+            Ok(price)
+        }
     }
 }
 
@@ -343,7 +359,10 @@ mod helpers {
             SimulationResponse,
         },
     };
-    use mars_core::basset::hub::{QueryMsg, StateResponse};
+    use basset::hub::{QueryMsg as BAssetQueryMsg, StateResponse as BAssetStateResponse};
+
+    use chainlink_terra::msg::QueryMsg as ChainlinkQueryMsg;
+    use chainlink_terra::state::Round;
 
     const PROBE_AMOUNT: Uint128 = Uint128::new(1_000_000);
 
@@ -457,11 +476,26 @@ mod helpers {
         querier: &QuerierWrapper,
         hub_address: &Addr,
     ) -> StdResult<Decimal> {
-        let response: StateResponse = querier.query(&QueryRequest::Wasm(WasmQuery::Smart {
-            contract_addr: hub_address.to_string(),
-            msg: to_binary(&QueryMsg::State {})?,
-        }))?;
+        let response: BAssetStateResponse =
+            querier.query(&QueryRequest::Wasm(WasmQuery::Smart {
+                contract_addr: hub_address.to_string(),
+                msg: to_binary(&BAssetQueryMsg::State {})?,
+            }))?;
         Ok(response.stluna_exchange_rate.into())
+    }
+
+    pub fn query_chainlink_price(
+        querier: &QuerierWrapper,
+        proxy_address: &Addr,
+    ) -> Result<Decimal, ContractError> {
+        let decimals: u8 = querier.query_wasm_smart(proxy_address, &ChainlinkQueryMsg::Decimals)?;
+        let round: Round =
+            querier.query_wasm_smart(proxy_address, &ChainlinkQueryMsg::LatestRoundData)?;
+
+        let price_precision = Uint128::from(10_u128.pow(decimals.into()));
+        let price = Decimal::from_ratio(round.answer as u128, price_precision);
+
+        Ok(price)
     }
 }
 
@@ -473,10 +507,11 @@ mod tests {
     use astroport::asset::{Asset as AstroportAsset, AssetInfo, PairInfo};
     use astroport::factory::PairType;
     use astroport::pair::{CumulativePricesResponse, SimulationResponse};
+    use basset::hub::StateResponse;
+    use chainlink_terra::state::Round;
     use cosmwasm_std::testing::{mock_env, mock_info, MockApi, MockStorage};
     use cosmwasm_std::Decimal as StdDecimal;
     use cosmwasm_std::{from_binary, Addr, OwnedDeps};
-    use mars_core::basset::hub::StateResponse;
     use mars_core::testing::{mock_dependencies, mock_env_at_block_time, MarsMockQuerier};
 
     #[test]
@@ -722,6 +757,36 @@ mod tests {
     }
 
     #[test]
+    fn test_set_asset_chainlink() {
+        let mut deps = th_setup();
+        let info = mock_info("owner", &[]);
+
+        let asset = Asset::Native {
+            denom: String::from("luna"),
+        };
+        let reference = asset.get_reference();
+        let msg = ExecuteMsg::SetAsset {
+            asset,
+            price_source: PriceSourceUnchecked::Chainlink {
+                proxy_address: "luna_chainlink_addr".to_string(),
+                ust_usd_proxy_address: None,
+            },
+        };
+        execute(deps.as_mut(), mock_env(), info.clone(), msg).unwrap();
+
+        let price_source = PRICE_SOURCES
+            .load(&deps.storage, reference.as_slice())
+            .unwrap();
+        assert_eq!(
+            price_source,
+            PriceSourceChecked::Chainlink {
+                proxy_address: Addr::unchecked("luna_chainlink_addr"),
+                ust_usd_proxy_address: None
+            }
+        );
+    }
+
+    #[test]
     fn test_record_twap_snapshots() {
         let mut deps = th_setup();
         let info = mock_info("anyone", &[]);
@@ -755,21 +820,8 @@ mod tests {
             denom: "uusd".to_string(),
         };
 
-        let mut cumulative_prices = CumulativePricesResponse {
-            assets: [
-                AstroportAsset {
-                    info: offer_asset_info,
-                    amount: Uint128::zero(),
-                },
-                AstroportAsset {
-                    info: ask_asset_info,
-                    amount: Uint128::zero(),
-                },
-            ],
-            total_share: Uint128::zero(),
-            price0_cumulative_last: Uint128::zero(), // token
-            price1_cumulative_last: Uint128::zero(), // uusd
-        };
+        let mut cumulative_prices =
+            zeroed_cumulative_prices(offer_asset_info.clone(), ask_asset_info.clone());
 
         // set the cumulative price
         cumulative_prices.price0_cumulative_last = Uint128::new(1_000_000000);
@@ -1076,21 +1128,8 @@ mod tests {
             denom: "uusd".to_string(),
         };
 
-        let mut cumulative_prices = CumulativePricesResponse {
-            assets: [
-                AstroportAsset {
-                    info: offer_asset_info.clone(),
-                    amount: Uint128::zero(),
-                },
-                AstroportAsset {
-                    info: ask_asset_info.clone(),
-                    amount: Uint128::zero(),
-                },
-            ],
-            total_share: Uint128::zero(),
-            price0_cumulative_last: Uint128::zero(), // token
-            price1_cumulative_last: Uint128::zero(), // uusd
-        };
+        let mut cumulative_prices =
+            zeroed_cumulative_prices(offer_asset_info.clone(), ask_asset_info.clone());
 
         deps.querier.set_astroport_pair(PairInfo {
             asset_infos: [offer_asset_info, ask_asset_info],
@@ -1230,6 +1269,121 @@ mod tests {
 
         // stLuna/USD = stLuna/Luna * Luna/USD
         assert_eq!(price, Decimal::from_ratio(1034_u128, 10_u128));
+    }
+
+    #[test]
+    fn test_query_asset_price_chainlink() {
+        let mut deps = mock_dependencies(&[]);
+
+        let env = mock_env();
+        let info = mock_info("owner", &[]);
+        let msg = InstantiateMsg {
+            owner: String::from("owner"),
+        };
+        instantiate(deps.as_mut(), env.clone(), info, msg).unwrap();
+
+        let asset = Asset::Cw20 {
+            contract_addr: String::from("cw20token"),
+        };
+        let asset_reference = asset.get_reference();
+
+        // Luna price in USD (ust_usd_proxy_address is empty)
+        let chainlink_cw20_contract_addr = Addr::unchecked("cw20token_chainlink_addr");
+        deps.querier
+            .set_chainlink_decimals(chainlink_cw20_contract_addr.clone(), 6);
+        let block_timestamp_sec = env.block.time.seconds() as u32;
+        deps.querier.set_chainlink_latest_round_data(
+            chainlink_cw20_contract_addr.clone(),
+            Round {
+                round_id: 1,
+                answer: 124560000,
+                observations_timestamp: block_timestamp_sec,
+                transmission_timestamp: block_timestamp_sec,
+            },
+        );
+
+        PRICE_SOURCES
+            .save(
+                &mut deps.storage,
+                asset_reference.as_slice(),
+                &PriceSourceChecked::Chainlink {
+                    proxy_address: chainlink_cw20_contract_addr.clone(),
+                    ust_usd_proxy_address: None,
+                },
+            )
+            .unwrap();
+
+        let price: Decimal = from_binary(
+            &query(
+                deps.as_ref(),
+                env.clone(),
+                QueryMsg::AssetPriceByReference {
+                    asset_reference: asset_reference.clone(),
+                },
+            )
+            .unwrap(),
+        )
+        .unwrap();
+
+        assert_eq!(price, Decimal::from_ratio(12456_u128, 100_u128));
+
+        // Converts the price to UST using the Chainlink UST/USD price feed
+        let chainlink_ust_usd_contract_addr = Addr::unchecked("ust_usd_chainlink_addr");
+        deps.querier
+            .set_chainlink_decimals(chainlink_ust_usd_contract_addr.clone(), 8);
+        deps.querier.set_chainlink_latest_round_data(
+            chainlink_ust_usd_contract_addr.clone(),
+            Round {
+                round_id: 1,
+                answer: 80000000,
+                observations_timestamp: block_timestamp_sec,
+                transmission_timestamp: block_timestamp_sec,
+            },
+        );
+
+        PRICE_SOURCES
+            .save(
+                &mut deps.storage,
+                asset_reference.as_slice(),
+                &PriceSourceChecked::Chainlink {
+                    proxy_address: chainlink_cw20_contract_addr,
+                    ust_usd_proxy_address: Some(chainlink_ust_usd_contract_addr),
+                },
+            )
+            .unwrap();
+
+        let price: Decimal = from_binary(
+            &query(
+                deps.as_ref(),
+                env,
+                QueryMsg::AssetPriceByReference { asset_reference },
+            )
+            .unwrap(),
+        )
+        .unwrap();
+
+        assert_eq!(price, Decimal::from_ratio(15570_u128, 100_u128));
+    }
+
+    fn zeroed_cumulative_prices(
+        offer_asset_info: AssetInfo,
+        ask_asset_info: AssetInfo,
+    ) -> CumulativePricesResponse {
+        CumulativePricesResponse {
+            assets: [
+                AstroportAsset {
+                    info: offer_asset_info,
+                    amount: Uint128::zero(),
+                },
+                AstroportAsset {
+                    info: ask_asset_info,
+                    amount: Uint128::zero(),
+                },
+            ],
+            total_share: Uint128::zero(),
+            price0_cumulative_last: Uint128::zero(), // token
+            price1_cumulative_last: Uint128::zero(), // uusd
+        }
     }
 
     // TEST_HELPERS
