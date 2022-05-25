@@ -2,11 +2,15 @@ use std::collections::HashMap;
 
 use cosmwasm_std::{to_binary, Addr, Binary, ContractResult, QuerierResult, SystemError};
 
-use astroport::pair::{CumulativePricesResponse, PoolResponse, QueryMsg, SimulationResponse};
+use astroport::{
+    asset::PairInfo,
+    pair::{CumulativePricesResponse, PoolResponse, QueryMsg, SimulationResponse},
+};
 
 #[derive(Clone, Default)]
 pub struct AstroportPairQuerier {
-    pub pairs: HashMap<String, PoolResponse>,
+    pub pairs: HashMap<String, PairInfo>,
+    pub pools: HashMap<String, PoolResponse>,
     pub simulations: HashMap<String, SimulationResponse>,
     pub cumulative_prices: HashMap<String, CumulativePricesResponse>,
 }
@@ -15,7 +19,15 @@ impl AstroportPairQuerier {
     pub fn handle_query(&self, contract_addr: &Addr, request: &QueryMsg) -> QuerierResult {
         let key = contract_addr.to_string();
         let ret: ContractResult<Binary> = match &request {
-            QueryMsg::Pool {} => match self.pairs.get(&key) {
+            QueryMsg::Pair {} => match self.pairs.get(&key) {
+                Some(pair_response) => to_binary(&pair_response).into(),
+                None => Err(SystemError::InvalidRequest {
+                    error: format!("PairResponse is not found for {}", key),
+                    request: Default::default(),
+                })
+                .into(),
+            },
+            QueryMsg::Pool {} => match self.pools.get(&key) {
                 Some(pool_response) => to_binary(&pool_response).into(),
                 None => Err(SystemError::InvalidRequest {
                     error: format!("PoolResponse is not found for {}", key),

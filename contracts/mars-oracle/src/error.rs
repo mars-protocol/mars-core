@@ -1,4 +1,4 @@
-use cosmwasm_std::{OverflowError, StdError};
+use cosmwasm_std::{ConversionOverflowError, OverflowError, StdError};
 use mars_core::error::MarsError;
 use thiserror::Error;
 
@@ -12,6 +12,9 @@ pub enum ContractError {
 
     #[error("{0}")]
     Overflow(#[from] OverflowError),
+
+    #[error("{0}")]
+    ConversionOverflow(#[from] ConversionOverflowError),
 
     #[error("Price source is not TWAP")]
     PriceSourceNotTwap {},

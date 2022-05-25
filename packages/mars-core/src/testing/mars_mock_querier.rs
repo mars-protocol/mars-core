@@ -212,7 +212,17 @@ impl MarsMockQuerier {
             total_share: Uint128::zero(),
         };
         let key = pair_info.contract_addr.to_string();
-        self.astroport_pair_querier.pairs.insert(key, pool_response);
+
+        self.astroport_pair_querier
+            .pairs
+            .insert(key.clone(), pair_info);
+        self.astroport_pair_querier.pools.insert(key, pool_response);
+    }
+
+    pub fn set_astroport_pool(&mut self, pair_address: String, pool_response: PoolResponse) {
+        self.astroport_pair_querier
+            .pools
+            .insert(pair_address, pool_response);
     }
 
     pub fn set_astroport_pair_cumulative_prices(

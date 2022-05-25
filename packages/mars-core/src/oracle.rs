@@ -41,12 +41,12 @@ pub enum PriceSource<A> {
         /// desired window size.
         tolerance: u64,
     },
-    /// Astroport liquidity token
+    /// Astroport liquidity token of an XYK pool
     ///
     /// NOTE: Astroport's pair contract does not have a query command to check the address of the LP
     /// token associated with a pair. Therefore, we can't implement relevant checks in the contract.
     /// The owner must make sure the addresses supplied are accurate
-    AstroportLiquidityToken {
+    AstroportXykLiquidityToken {
         /// Address of the asset of interest
         pair_address: A,
     },
@@ -63,7 +63,7 @@ impl<A> fmt::Display for PriceSource<A> {
             PriceSource::Native { .. } => "native",
             PriceSource::AstroportSpot { .. } => "astroport_spot",
             PriceSource::AstroportTwap { .. } => "astroport_twap",
-            PriceSource::AstroportLiquidityToken { .. } => "astroport_liquidity_token",
+            PriceSource::AstroportXykLiquidityToken { .. } => "astroport_xyk_liquidity_token",
             PriceSource::Stluna { .. } => "stluna",
             PriceSource::Lunax { .. } => "lunax",
         };
@@ -95,8 +95,8 @@ impl PriceSourceUnchecked {
                 window_size: *window_size,
                 tolerance: *tolerance,
             },
-            PriceSourceUnchecked::AstroportLiquidityToken { pair_address } => {
-                PriceSourceChecked::AstroportLiquidityToken {
+            PriceSourceUnchecked::AstroportXykLiquidityToken { pair_address } => {
+                PriceSourceChecked::AstroportXykLiquidityToken {
                     pair_address: api.addr_validate(pair_address)?,
                 }
             }

@@ -1,6 +1,6 @@
 [package]
 name = "mars-oracle"
-version = "1.0.2"
+version = "1.0.3"
 authors = [
   "Spike Spiegel <spikeonmars@protonmail.com>",
   "larry_0x <larry@delphidigital.io>"
@@ -23,7 +23,7 @@ crate-type = ["cdylib", "rlib"]
 backtraces = ["cosmwasm-std/backtraces"]
 
 [dependencies]
-mars-core = { path = "../../packages/mars-core", version = "1.0.2" }
+mars-core = { path = "../../packages/mars-core", version = "1.0.3" }
 
 terra-cosmwasm = "2.2.0"
 
