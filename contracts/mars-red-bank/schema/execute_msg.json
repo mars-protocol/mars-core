@@ -1,7 +1,7 @@
 {
   "$schema": "http://json-schema.org/draft-07/schema#",
   "title": "ExecuteMsg",
-  "anyOf": [
+  "oneOf": [
     {
       "description": "Implementation of cw20 receive msg",
       "type": "object",
@@ -196,6 +196,92 @@
             "denom": {
               "description": "Denom used in Terra (e.g: uluna, uusd)",
               "type": "string"
+            },
+            "on_behalf_of": {
+              "description": "Address that will receive the maTokens",
+              "type": [
+                "string",
+                "null"
+              ]
+            }
+          }
+        }
+      },
+      "additionalProperties": false
+    },
+    {
+      "description": "User function to Stake CW20 tokens",
+      "type": "object",
+      "required": [
+        "stake"
+      ],
+      "properties": {
+        "stake": {
+          "type": "object",
+          "required": [
+            "asset"
+          ],
+          "properties": {
+            "amount": {
+              "description": "Amount to be stake. If None is specified, the full token balance will be staked",
+              "anyOf": [
+                {
+                  "$ref": "#/definitions/Uint128"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "asset": {
+              "description": "Asset to stake",
+              "allOf": [
+                {
+                  "$ref": "#/definitions/Asset"
+                }
+              ]
+            }
+          }
+        }
+      },
+      "additionalProperties": false
+    },
+    {
+      "description": "User function to Unstake CW20 tokens",
+      "type": "object",
+      "required": [
+        "unstake"
+      ],
+      "properties": {
+        "unstake": {
+          "type": "object",
+          "required": [
+            "asset",
+            "claim_rewards"
+          ],
+          "properties": {
+            "amount": {
+              "description": "Amount to be unstaked. If None is specified, the full token balance will be unstaked",
+              "anyOf": [
+                {
+                  "$ref": "#/definitions/Uint128"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "asset": {
+              "description": "Asset to unstake",
+              "allOf": [
+                {
+                  "$ref": "#/definitions/Asset"
+                }
+              ]
+            },
+            "claim_rewards": {
+              "description": "Boolean value indicating if rewards are to be claimed or not",
+              "type": "boolean"
             }
           }
         }
@@ -233,6 +319,13 @@
                   "$ref": "#/definitions/Asset"
                 }
               ]
+            },
+            "recipient": {
+              "description": "The address where the withdrawn amount is sent",
+              "type": [
+                "string",
+                "null"
+              ]
             }
           }
         }
@@ -268,6 +361,13 @@
                   "$ref": "#/definitions/Asset"
                 }
               ]
+            },
+            "recipient": {
+              "description": "The address where the borrowed amount is sent",
+              "type": [
+                "string",
+                "null"
+              ]
             }
           }
         }
@@ -290,6 +390,13 @@
             "denom": {
               "description": "Denom used in Terra (e.g: uluna, uusd)",
               "type": "string"
+            },
+            "on_behalf_of": {
+              "description": "Repay the funds for the user",
+              "type": [
+                "string",
+                "null"
+              ]
             }
           }
         }
@@ -438,7 +545,7 @@
     },
     "Asset": {
       "description": "Represents either a native asset or a cw20. Meant to be used as part of a msg in a contract call and not to be used internally",
-      "anyOf": [
+      "oneOf": [
         {
           "type": "object",
           "required": [
@@ -708,11 +815,22 @@
               "type": "null"
             }
           ]
+        },
+        "staking_proxy_address": {
+          "description": "Staking proxy contract address",
+          "anyOf": [
+            {
+              "$ref": "#/definitions/Addr"
+            },
+            {
+              "type": "null"
+            }
+          ]
         }
       }
     },
     "InterestRateModelParams": {
-      "anyOf": [
+      "oneOf": [
         {
           "type": "object",
           "required": [

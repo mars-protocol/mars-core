@@ -68,7 +68,7 @@ pub enum ExecuteMsg {
         new_limit: Uint128,
     },
 
-    /// Deposit Terra native coins. Deposited coins must be sent in the transaction
+    /// Deposit Terra native coins (Or stakes them via the proxy contract for yield rewards in-case of LP tokens when staking is enabled). Deposited coins must be sent in the transaction
     /// this call is made
     DepositNative {
         /// Denom used in Terra (e.g: uluna, uusd)
@@ -188,6 +188,9 @@ pub struct CreateOrUpdateConfig {
 
 #[derive(Serialize, Deserialize, Clone, Debug, PartialEq, JsonSchema)]
 pub struct InitOrUpdateAssetParams {
+    /// Staking proxy contract address
+    pub staking_proxy_address: Option<Addr>,
+
     /// Initial borrow rate
     pub initial_borrow_rate: Option<Decimal>,
 

@@ -1,4 +1,6 @@
-use cosmwasm_std::{to_binary, Addr, BankMsg, Coin, CosmosMsg, Deps, StdResult, Uint128, WasmMsg};
+use cosmwasm_std::{
+    to_binary, Addr, Api, BankMsg, Coin, CosmosMsg, Deps, StdError, StdResult, Uint128, WasmMsg,
+};
 use cw20::Cw20ExecuteMsg;
 use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
@@ -134,4 +136,19 @@ pub fn get_asset_balance(
             cw20_get_balance(&deps.querier, token_addr, address)
         }
     }
+}
+
+/// Returns a lowercased, validated address upon success. Otherwise returns [`Err`]
+/// ## Params
+/// * **api** is an object of type [`Api`]
+///
+/// * **addr** is an object of type [`Addr`]
+pub fn addr_validate_to_lower(api: &dyn Api, addr: &str) -> StdResult<Addr> {
+    if addr.to_lowercase() != addr {
+        return Err(StdError::generic_err(format!(
+            "Address {} should be lowercase",
+            addr
+        )));
+    }
+    api.addr_validate(addr)
 }

@@ -49,6 +49,8 @@ pub struct Market {
     pub index: u32,
     /// maToken contract address
     pub ma_token_address: Addr,
+    /// Staking proxy contract address (Optional, handles staking/unstaking/rewards claiming for LP tokens)
+    pub staking_proxy_address: Option<Addr>,
     /// Indicated whether the asset is native or a cw20 token
     pub asset_type: AssetType,
 
@@ -127,6 +129,7 @@ impl Default for Market {
 
         Market {
             index: 0,
+            staking_proxy_address: None,
             ma_token_address: crate::helpers::zero_address(),
             liquidity_index: Decimal::one(),
             borrow_index: Decimal::one(),
@@ -222,6 +225,8 @@ pub struct MarketInfo {
     pub asset_type: AssetType,
     /// Address for the corresponding maToken
     pub ma_token_address: Addr,
+    /// Address for the corresponding proxy contract which handles staking/unstaking
+    pub staking_proxy_address: Option<Addr>,
 }
 
 #[derive(Serialize, Deserialize, Clone, Debug, PartialEq, JsonSchema)]

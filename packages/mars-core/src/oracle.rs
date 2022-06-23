@@ -46,6 +46,7 @@ pub enum PriceSource<A> {
     /// NOTE: Astroport's pair contract does not have a query command to check the address of the LP
     /// token associated with a pair. Therefore, we can't implement relevant checks in the contract.
     /// The owner must make sure the addresses supplied are accurate
+    /// LP Token (KYC pairs) price calculated via the formula, LP Token Price = 2 * (TWAP Price of 1st asset * TWAP price of 2nd asset)^1/2 * (Pool balance of 1st asset * Pool balance of 2nd asset )^1/2 / (Total LP)
     AstroportLiquidityToken {
         /// Address of the asset of interest
         pair_address: A,

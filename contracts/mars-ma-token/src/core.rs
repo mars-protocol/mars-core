@@ -127,3 +127,39 @@ pub fn balance_change_msg(
         funds: vec![],
     }))
 }
+
+/// Claims any accrued rewards and updates staked ma_shares balance before burning the ma_tokens
+pub fn update_staking_balance_msg(
+    staking_proxy_addr: Addr,
+    user_address: Addr,
+    ma_shares_to_burn: Uint128,
+) -> StdResult<CosmosMsg> {
+    Ok(CosmosMsg::Wasm(WasmMsg::Execute {
+        contract_addr: staking_proxy_addr.into(),
+        msg: to_binary(&mars_core::staking_proxy::ExecuteMsg::UnstakeBeforeBurn {
+            user_address,
+            ma_shares_to_burn,
+        })?,
+        funds: vec![],
+    }))
+}
+
+/// Claims any accrued rewards and transfers staked token shares to the new recepient
+pub fn transfer_on_liq_msg(
+    staking_proxy_addr: Addr,
+    from_user_addr: Addr,
+    to_user_addr: Addr,
+    underlying_amount: Uint128,
+    ma_token_share: Uint128,
+) -> StdResult<CosmosMsg> {
+    Ok(CosmosMsg::Wasm(WasmMsg::Execute {
+        contract_addr: staking_proxy_addr.into(),
+        msg: to_binary(&mars_core::staking_proxy::ExecuteMsg::UpdateOnTransfer {
+            from_user_addr,
+            to_user_addr,
+            underlying_amount,
+            ma_token_share,
+        })?,
+        funds: vec![],
+    }))
+}

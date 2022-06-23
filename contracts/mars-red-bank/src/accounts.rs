@@ -155,7 +155,8 @@ fn get_user_asset_positions(
                 user_address.clone(),
             )?;
 
-            let collateral_amount =
+            // Underlying token amount against the ma_token balance
+            let mut collateral_amount =
                 get_underlying_liquidity_amount(asset_balance_scaled, &market, block_time)?;
 
             (

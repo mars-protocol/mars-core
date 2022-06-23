@@ -19,6 +19,18 @@ use crate::{AstroportTwapSnapshot, Config, PriceSourceChecked, PriceSourceUnchec
 use self::helpers::*;
 use astroport::pair::TWAP_PRECISION;
 
+/// This module is purely a workaround that lets us ignore lints for all the code the `construct_uint!`
+/// macro generates
+#[allow(clippy::all)]
+mod uints {
+    uint::construct_uint! {
+        pub struct U256(4);
+    }
+}
+
+/// Used internally - we don't want to leak this type since we might change the implementation in the future
+use uints::U256;
+
 // INIT
 
 #[cfg_attr(not(feature = "library"), entry_point)]
@@ -294,13 +306,18 @@ fn query_asset_price(
 
             let asset0: Asset = (&pool.assets[0].info).into();
             let asset0_price = query_asset_price(deps, env.clone(), asset0.get_reference())?;
-            let asset0_value = asset0_price * pool.assets[0].amount;
+            let asset0_value = U256::from(u128::from(pool.assets[0].amount * asset0_price));
+
+            // NOTE: we need to use U256 here, because Uint128 * Uint128 may overflow the 128-bit limit
 
             let asset1: Asset = (&pool.assets[1].info).into();
             let asset1_price = query_asset_price(deps, env, asset1.get_reference())?;
-            let asset1_value = asset1_price * pool.assets[1].amount;
+            let asset1_value = U256::from(u128::from(asset1_price * pool.assets[1].amount));
 
-            let price = Decimal::from_ratio(asset0_value + asset1_value, pool.total_share);
+            let pool_value = U256::from(2) * (asset0_value * asset1_value).integer_sqrt();
+            let pool_value_u128 = Uint128::new(pool_value.as_u128());
+            let price = Decimal::from_ratio(pool_value_u128, pool.total_share);
+
             Ok(price)
         }
 

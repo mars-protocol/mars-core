@@ -136,6 +136,9 @@ pub enum ContractError {
 
     #[error("Cannot repay uncollateralized loan on behalf of another user")]
     CannotRepayUncollateralizedLoanOnBehalfOf {},
+
+    #[error("Staking proxy contract address not set for {asset:?}")]
+    StakingProxyNotSet { asset: String },
 }
 
 impl ContractError {

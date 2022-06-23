@@ -552,6 +552,22 @@ dependencies = [
 ]
 
 [[package]]
+name = "mars-lp-staking-proxy"
+version = "1.0.0"
+dependencies = [
+ "astroport",
+ "cosmwasm-schema",
+ "cosmwasm-std",
+ "cw-storage-plus 0.9.1",
+ "cw20 0.9.1",
+ "cw20-base",
+ "mars-core",
+ "schemars",
+ "serde",
+ "thiserror",
+]
+
+[[package]]
 name = "mars-ma-token"
 version = "1.0.0"
 dependencies = [

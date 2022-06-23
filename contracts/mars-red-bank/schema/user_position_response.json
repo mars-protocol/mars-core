@@ -45,7 +45,7 @@
       "type": "string"
     },
     "UserHealthStatus": {
-      "anyOf": [
+      "oneOf": [
         {
           "type": "string",
           "enum": [

@@ -67,6 +67,17 @@
               "$ref": "#/definitions/Addr"
             }
           ]
+        },
+        "staking_proxy_address": {
+          "description": "Address for the corresponding proxy contract which handles staking/unstaking",
+          "anyOf": [
+            {
+              "$ref": "#/definitions/Addr"
+            },
+            {
+              "type": "null"
+            }
+          ]
         }
       }
     }

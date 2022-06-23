@@ -142,6 +142,17 @@
           "$ref": "#/definitions/Decimal"
         }
       ]
+    },
+    "staking_proxy_address": {
+      "description": "Staking proxy contract address (Optional, handles staking/unstaking/rewards claiming for LP tokens)",
+      "anyOf": [
+        {
+          "$ref": "#/definitions/Addr"
+        },
+        {
+          "type": "null"
+        }
+      ]
     }
   },
   "definitions": {
@@ -255,7 +266,7 @@
       }
     },
     "InterestRateModel": {
-      "anyOf": [
+      "oneOf": [
         {
           "type": "object",
           "required": [
